@@ -1,0 +1,19 @@
+{
+    "name": "pauloklaus/form-fill-notifier",
+    "description": "API to receive email notification when a form is filled out.",
+    "keywords": ["api", "email", "form", "notification", "notify"],
+    "license": "GPLv3",
+    "authors": [
+        {
+            "name": "Paulo S Klaus",
+            "email": "contato@pauloklaus.com.br",
+            "homepage": "https://pauloklaus.com.br",
+            "role": "developer"
+        }
+    ],
+    "require": {
+        "nikic/fast-route": "^1.3",
+        "monolog/monolog": "^2.1",
+        "swiftmailer/swiftmailer": "^6.2"
+    }
+}
