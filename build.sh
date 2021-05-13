@@ -9,7 +9,7 @@ function error {
 
 COMPOSER="composer.phar"
 PHP_BIN="`command -v php`"
-[ -z "$PHP_BIN" ] && PHP_BIN="docker run -it --rm -v $PWD:/app -w /app php php"
+[ -z "$PHP_BIN" ] && PHP_BIN="docker run -it --rm -v $PWD:/app -w /app pauloklaus/phpcli:7.4-cli php"
 
 if [ -f $COMPOSER ];
 then
