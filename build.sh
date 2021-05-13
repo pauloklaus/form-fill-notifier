@@ -20,7 +20,7 @@ else
     COMPOSER_SETUP="composer-setup.php"
     $PHP_BIN -r "copy('https://getcomposer.org/installer', '$COMPOSER_SETUP');"
     $PHP_BIN $COMPOSER_SETUP
-    rm $COMPOSER_SETUP
+    rm -f $COMPOSER_SETUP
 fi
 
 OPTIONS="--optimize-autoloader"
