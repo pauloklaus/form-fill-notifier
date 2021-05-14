@@ -18,7 +18,7 @@ CONFIG=deploy.conf
 
 ping -c1 $REMOTE_HOST || error "Server unreachable '$REMOTE_HOST'."
 
-LOCAL_TARGET="lang src public vendor .env.php"
+LOCAL_TARGET="lang public vendor .env.php"
 
 rsync -aruvzh --delete --progress $LOCAL_TARGET $REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR || error "Error updating the server '$REMOTE_HOST'."
 
