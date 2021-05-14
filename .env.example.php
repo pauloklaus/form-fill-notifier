@@ -4,6 +4,7 @@ return [
     "APP_NAME" => "Example App",
     "APP_URL_REDIRECT" => "https://www.example.com",
     "LANG" => "en",
+	"BASE_ROUTE" => "/",
     "MAIL_SERVER" => "smtp.mail.com",
     "MAIL_PORT" => 587,
     "MAIL_AUTH" => true,

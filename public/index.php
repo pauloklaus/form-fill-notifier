@@ -160,8 +160,10 @@ $uri = rawurldecode($uri);
 
 try {
     $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
-        $r->addRoute("OPTIONS", "/contact", "success");
-        $r->addRoute("POST", "/contact", "newContact");
+        $r->addGroup($_ENV["BASE_ROUTE"], function(FastRoute\RouteCollector $r) {
+	        $r->addRoute("OPTIONS", "/contact", "success");
+    	    $r->addRoute("POST", "/contact", "newContact");
+		});
     });
 
     $logger->info("Get route method. " . $httpMethod . " " . $uri);
