@@ -7,6 +7,7 @@ function error {
 	exit
 }
 
+# REMOTE_USER=user
 # REMOTE_HOST=my-server.com
 # REMOTE_DIR=./api
 CONFIG=deploy.conf
@@ -19,7 +20,7 @@ ping -c1 $REMOTE_HOST || error "Server unreachable '$REMOTE_HOST'."
 
 LOCAL_TARGET="lang src public vendor .env.php"
 
-rsync -aruvzh --delete --progress $LOCAL_TARGET $REMOTE_HOST:$REMOTE_DIR || error "Error updating the server '$REMOTE_HOST'."
+rsync -aruvzh --delete --progress $LOCAL_TARGET $REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR || error "Error updating the server '$REMOTE_HOST'."
 
 echo
 echo "- Successful operation, '$REMOTE_HOST' updated."
