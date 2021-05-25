@@ -128,6 +128,7 @@ function newContact($params) {
     $message = (new Swift_Message(LANG["MAIL_TITLE"] . " #" . $id . " - " . ($json["origin"] ?? LANG["MAIL_NOT_INFORMED"])))
         ->setFrom([$_ENV["MAIL_USER"] => $_ENV["APP_NAME"]])
         ->setTo($_ENV["MAIL_ALERT"])
+        ->setReplyTo($json["email"] ?? "")
         ->setBody(LANG["MAIL_TITLE"] . PHP_EOL . PHP_EOL .
             "Id: #" . $id . PHP_EOL .
             LANG["MAIL_SOURCE"] . ": " . ($json["origin"] ?? LANG["MAIL_NOT_INFORMED"]) . PHP_EOL .
