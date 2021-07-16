@@ -9,12 +9,6 @@ define("VENDOR_DIR", ROOT_DIR . "vendor/");
 
 require VENDOR_DIR . "autoload.php";
 
-define("ERROR_CATCHING_BODY", 1492);
-define("ERROR_DECODING_JSON", 1625);
-define("ERROR_NO_LOGDIR", 6512);
-define("ERROR_MISSING_REQUIRED_FIELDS", 9121);
-define("ERROR_SENDING_MAIL", 2183);
-
 // Http Headers
 
 header_remove("X-Powered-By");
@@ -31,41 +25,35 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 
 // Config
 
-$_ENV = require ROOT_DIR . ".env.php";
-DEFINE("LANG", require LANG_DIR . ($_ENV["LANG"] ?? "en") . ".php");
+define("ENV", require ROOT_DIR . ".env.php");
+define("LANG", require LANG_DIR . (ENV["LANG"] ?? "en") . ".php");
 
 // Helpers
 
-function failMessage(int $code = 0) {
-    return "#" . $code . ": " . LANG["FAIL_MESSAGE"];
+function sanitizeUrl(string $uri): string {
+    if (false !== $pos = strpos($uri, "?"))
+        $uri = substr($uri, 0, $pos);
+    
+    return rawurldecode($uri);
 }
 
-function getParsedBody() {
-    global $logger;
-
+function getParsedBody(): void {
     $body = file_get_contents("php://input");
 
-    if ($body === false) {
-        $logger->critical("Error catching requested body.");
-        throw new Exception(failMessage(ERROR_CATCHING_BODY), 1);
-    }
+    if ($body === false)
+        throw new Exception(ENV["ERROR_CATCHING_BODY"]);
 
-    try {
-        return json_decode($body, true) ?? [];
-    }
-    catch (Throwable $th)  {
-        $logger->critical("Error decoding json body: ", $th->getMessage());
-        throw new Exception(failMessage(ERROR_DECODING_JSON), 1);
-    }
+    return json_decode($body, true) ?? [];
 }
 
-function jsonResponse(Array $response = [], int $statusCode = 200) {
+function jsonResponse(Array $response = [], int $statusCode = 200): void {
     http_response_code($statusCode);
     header("Content-Type: application/json");
+
     echo json_encode($response);
 }
 
-function success(Array $data = []) {
+function successResponse(Array $data = []): void {
     $response = [ "message" => "Success." ];
 
     if ($data != [])
@@ -74,35 +62,34 @@ function success(Array $data = []) {
     jsonResponse($response);
 }
 
-function error(String $message) {
+function errorResponse(String $message): void {
     $message = $message ?? LANG["REQUEST_ERROR"];
     jsonResponse([ "message" => $message ], 400);
 }
 
 // Initializing
 
-$transporter = new Swift_SmtpTransport($_ENV["MAIL_SERVER"], $_ENV["MAIL_PORT"], $_ENV["MAIL_SECURITY"]);
-$transporter->setUsername($_ENV["MAIL_USER"]);
-$transporter->setPassword($_ENV["MAIL_PASSWORD"]);
+$transporter = new Swift_SmtpTransport(ENV["MAIL_SERVER"], ENV["MAIL_PORT"], ENV["MAIL_SECURITY"]);
+$transporter->setUsername(ENV["MAIL_USER"]);
+$transporter->setPassword(ENV["MAIL_PASSWORD"]);
 
 try {
     if (!is_dir(LOG_DIR) && !mkdir(LOG_DIR))
-        throw new Exception(failMessage(ERROR_NO_LOGDIR));
+        throw new Exception(ENV["ERROR_NO_LOGDIR"]));
 }
 catch (Throwable $th) {
-    error($th->getMessage());
+    errorResponse($th->getMessage());
     exit;
 }
 
-$logger = new Monolog\Logger($_ENV["APP_NAME"]);
+$logger = new Monolog\Logger(ENV["APP_NAME"]);
 $logger->pushHandler(new Monolog\Handler\StreamHandler(LOG_FILE, Monolog\Logger::DEBUG));
 $mailer = new Swift_Mailer($transporter);
 
-if ($_ENV["NOTIFY_CRITICAL_LOG"]) {
-
-    $notifyCriticalLog = (new Swift_Message($_ENV["APP_NAME"] . ": A CRITICAL log was added"));
-    $notifyCriticalLog->setFrom([$_ENV["MAIL_USER"] => $_ENV["APP_NAME"]]);
-    $notifyCriticalLog->setTo(is_array($_ENV["MAIL_ALERT"]) ? $_ENV["MAIL_ALERT"] : [$_ENV["MAIL_ALERT"]]);
+if (ENV["NOTIFY_CRITICAL_LOG"]) {
+    $notifyCriticalLog = (new Swift_Message(ENV["APP_NAME"] . ": A CRITICAL log was added"));
+    $notifyCriticalLog->setFrom([ENV["MAIL_USER"] => ENV["APP_NAME"]]);
+    $notifyCriticalLog->setTo(is_array(ENV["MAIL_ALERT"]) ? ENV["MAIL_ALERT"] : [ENV["MAIL_ALERT"]]);
 
     $logger->pushHandler(new Monolog\Handler\SwiftMailerHandler($mailer, $notifyCriticalLog, Monolog\Logger::CRITICAL, false));
 }
@@ -116,18 +103,15 @@ function newContact($params) {
 
     if (!$json["origin"] || $json["origin"] == ""
         || !$json["name"] || $json["name"] == ""
-        || !$json["comments"] || $json["comments"] == "") {
-            $logger->critical("Missing required fields.", $json);
-            error(failMessage(ERROR_MISSING_REQUIRED_FIELDS));
-            return;
-        }
+        || !$json["comments"] || $json["comments"] == "")
+            throw new Exception(ENV["ERROR_MISSING_REQUIRED_FIELDS"]);
 
     $id = uniqid();
     $logger->info("New contact #" . $id, $json);
 
     $message = (new Swift_Message(LANG["MAIL_TITLE"] . " #" . $id . " - " . ($json["origin"] ?? LANG["MAIL_NOT_INFORMED"])))
-        ->setFrom([$_ENV["MAIL_USER"] => $_ENV["APP_NAME"]])
-        ->setTo($_ENV["MAIL_ALERT"])
+        ->setFrom([ENV["MAIL_USER"] => ENV["APP_NAME"]])
+        ->setTo(ENV["MAIL_ALERT"])
         ->setReplyTo($json["email"] ?? "")
         ->setBody(LANG["MAIL_TITLE"] . PHP_EOL . PHP_EOL .
             "Id: #" . $id . PHP_EOL .
@@ -137,13 +121,13 @@ function newContact($params) {
             LANG["MAIL_PHONE"] . ": " . ($json["phone"] ?? LANG["MAIL_NOT_INFORMED"]) . PHP_EOL .
             LANG["MAIL_COMMENT"] . ": " . ($json["comments"] ?? LANG["MAIL_NOT_INFORMED"])
         );
+
     try {
         $mailer->send($message);
-        success();
+        successResponse();
     }
     catch (Throwable $th) {
-        $logger->error("Error sending new contact mail notification: " . $th->getMessage());
-        error(failMessage(ERROR_SENDING_MAIL));
+        throw new Exception(ENV["ERROR_SENDING_MAIL"]);
     }
 }
 
@@ -152,16 +136,11 @@ function newContact($params) {
 $logger->info("Start app.");
 
 $httpMethod = $_SERVER["REQUEST_METHOD"];
-$uri = $_SERVER["REQUEST_URI"];
-
-if (false !== $pos = strpos($uri, "?"))
-    $uri = substr($uri, 0, $pos);
-
-$uri = rawurldecode($uri);
+$uri = sanitizeUrl($_SERVER["REQUEST_URI"]);
 
 try {
     $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
-        $r->addGroup($_ENV["BASE_ROUTE"], function(FastRoute\RouteCollector $r) {
+        $r->addGroup(ENV["BASE_ROUTE"], function(FastRoute\RouteCollector $r) {
 	        $r->addRoute("OPTIONS", "contact", "success");
     	    $r->addRoute("POST", "contact", "newContact");
 		});
@@ -180,12 +159,11 @@ try {
         case FastRoute\Dispatcher::NOT_FOUND:
         case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
         default:
-            // $allowedMethods = $routeInfo[1];
-            $logger->error("Run default route.");
-            header("Location: " . $_ENV["APP_URL_REDIRECT"]);
-            break;
+            $logger->errorResponse("Redirected to default route.");
+            header("Location: " . ENV["APP_URL_REDIRECT"]);
     }
 }
 catch (Throwable $th) {
-    error($th->getMessage());
+    $logger->error("Error: " . $th->getMessage());
+    errorResponse($th->getMessage());
 }

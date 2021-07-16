@@ -3,6 +3,7 @@
     "description": "API to receive email notification when a form is filled out.",
     "keywords": ["api", "email", "form", "notification", "notify"],
     "license": "GPLv3",
+    "version": "0.1.0",
     "authors": [
         {
             "name": "Paulo S Klaus",
